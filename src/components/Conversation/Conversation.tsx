@@ -31,7 +31,7 @@ const Conversation: React.FC<ConversationProps> = ({
           throw new Error('Thread ID is missing');
         }
         const data = await getMessages(selectedAssistant.id, selectedThread.openai_thread_id);
-        setMessages(data);
+        setMessages(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error('Error fetching messages:', error);
       } finally {

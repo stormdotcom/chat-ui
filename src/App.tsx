@@ -97,7 +97,7 @@ const RouteSyncWrapper: React.FC<RouteSyncWrapperProps> = ({
         messages: [],
       });
     }
-  }, [assistantId, threadId, selectedAssistant, selectedThread, setSelectedAssistant, setSelectedThread]);
+  }, [ threadId]);
 
   return (
     <div className="flex-1 overflow-hidden">

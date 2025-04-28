@@ -6,7 +6,7 @@ interface MessageListProps {
   isLoading: boolean;
 }
 
-const MessageList: React.FC<MessageListProps> = ({ messages, isLoading }) => {
+const MessageList: React.FC<MessageListProps> = ({ messages=[], isLoading }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Scroll to bottom when messages change
@@ -40,7 +40,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, isLoading }) => {
 
   return (
     <div className="flex-1 overflow-y-auto p-4 space-y-4">
-      {messages.map((message) => (
+      {messages?.map((message) => (
         <div
           key={message.id}
           className={`max-w-3xl ${

@@ -57,7 +57,7 @@ const ThreadsList: React.FC<ThreadsListProps> = ({
       ) : (
         threads.map((thread) => (
           <button
-            key={thread.id}
+            key={thread?.assistant_id}
             className={`w-full text-left p-3 rounded-md transition-colors ${
               selectedThread?.openai_thread_id === thread.openai_thread_id
                 ? 'bg-indigo-50 border border-indigo-200'
