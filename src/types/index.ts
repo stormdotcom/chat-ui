@@ -6,6 +6,7 @@ export interface Assistant {
 }
 
 export interface Thread {
+  [x: string]: ReactNode;
   id: string;
   messages: Message[];
   created_at?: string;

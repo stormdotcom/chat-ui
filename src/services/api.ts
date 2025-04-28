@@ -22,69 +22,31 @@ export const getAssistants = async () => {
 };
 
 // Thread endpoints
-export const getThreads = async (assistantId: string) => {
-  const response = await api.get(`/assistances/${assistantId}/threads`);
+export const getThreads = async () => {
+  const response = await api.get(`/assistances/threads`);
   return response.data;
 };
 
-export const createThread = async (assistantId: string) => {
-  const response = await api.post(`/assistances/${assistantId}/threads`);
+export const createThread = async () => {
+  const response = await api.post(`/assistances/threads`);
   return response.data;
 };
 
 // Message endpoints
-export const getMessages = async (assistantId: string, threadId: string) => {
-  const response = await api.get(`/assistances/${assistantId}/threads/${threadId}/messages`);
+export const getMessages = async (threadId: string) => {
+  const response = await api.get(`/assistances/threads/${threadId}/messages`);
   return response.data;
 };
 
-export const sendMessage = async (assistantId: string, threadId: string, content: string) => {
-  const response = await api.post(`/assistances/${assistantId}/threads/${threadId}/messages`, {
-    role: 'user',
+export const sendMessage = async (threadId: string, content: string) => {
+  const response = await api.post(`/assistances/threads/${threadId}/runs`, {
     content,
   });
   return response.data;
 };
 
-export const runThread = async (assistantId: string, threadId: string, content: string) => {
-  const response = await api.post(`/assistances/${assistantId}/threads/${threadId}/run`, {
-    role: 'user',
-    content,
-  });
-  return response.data;
-};
-
-/**
- * New endpoints for /threads/ask and /threads/run integration
- */
-
-// GET /threads/ask
-export const getAskThreads = async () => {
-  const response = await api.get('/threads/ask');
-  return response.data;
-};
-
-// POST /threads/ask
-export const postAskThread = async (data: any) => {
-  const response = await api.post('/threads/ask', data);
-  return response.data;
-};
-
-// POST /threads/:threadId/run
-export const runThreadById = async (threadId: string, data: any) => {
-  const response = await api.post(`/threads/${threadId}/run`, data);
-  return response.data;
-};
-
-// POST /threads/:threadId/run/sync
-export const runThreadByIdSync = async (threadId: string, data: any) => {
-  const response = await api.post(`/threads/${threadId}/run/sync`, data);
-  return response.data;
-};
-
-// POST /threads/run
-export const runNewThread = async (data: any) => {
-  const response = await api.post('/threads/run', data);
+export const getRunStatus = async (threadId: string, runId: string) => {
+  const response = await api.get(`/assistances/threads/${threadId}/runs/${runId}`);
   return response.data;
 };
 

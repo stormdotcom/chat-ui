@@ -16,6 +16,17 @@ const MessageList: React.FC<MessageListProps> = memo(({ messages = [], isLoading
     }
   }, [messages]);
 
+  if (!Array.isArray(messages)) {
+    console.error('Messages is not an array:', messages);
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center p-8">
+          <p className="text-red-500">Error: Invalid messages format</p>
+        </div>
+      </div>
+    );
+  }
+
   if (messages.length === 0 && !isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -42,7 +53,7 @@ const MessageList: React.FC<MessageListProps> = memo(({ messages = [], isLoading
 
   return (
     <div className="flex-1 overflow-y-auto p-4 space-y-4">
-      {messages?.map((message) => (
+      {messages.map((message) => (
         <div
           key={message.id}
           className={`max-w-3xl ${

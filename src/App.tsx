@@ -3,6 +3,7 @@ import { Route, Routes, Navigate } from 'react-router-dom';
 import Conversation from './components/Conversation/Conversation';
 import FileManagement from './components/FileManagement/FileManagement';
 import Sidebar from './components/Sidebar/Sidebar';
+import ErrorBoundary from './components/ErrorBoundary';
 import { getAssistants } from './services/api';
 import { Assistant, Thread } from './types';
 
@@ -41,53 +42,55 @@ function App() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar
-        selectedAssistant={selectedAssistant}
-        setSelectedAssistant={setSelectedAssistant}
-        selectedThread={selectedThread}
-        setSelectedThread={setSelectedThread}
-      />
+    <ErrorBoundary>
+      <div className="flex h-screen bg-gray-50">
+        <Sidebar
+          selectedAssistant={selectedAssistant}
+          setSelectedAssistant={setSelectedAssistant}
+          selectedThread={selectedThread}
+          setSelectedThread={setSelectedThread}
+        />
 
-      <main className="flex-1 flex flex-col overflow-hidden md:ml-72">
-        <div className="flex-1 overflow-y-auto flex flex-col">
-          <Routes>
-            <Route
-              path="/"
-              element={
-                selectedAssistant && selectedThread ? (
-                  <Navigate to={`/assistant/thread/${selectedThread.openai_thread_id}`} replace />
-                ) : (
-                  <div className="flex-1 flex items-center justify-center bg-gray-50">
-                    <p className="text-gray-500">Select an assistant and thread to start</p>
-                  </div>
-                )
-              }
-            />
-            <Route
-              path="/assistant/thread/:threadId"
-              element={
-                <RouteSyncWrapper
-                  selectedAssistant={selectedAssistant}
-                  selectedThread={selectedThread}
-                  setSelectedThread={setSelectedThread}
-                />
-              }
-            />
-            <Route
-              path="*"
-              element={<Navigate to="/" replace />}
-            />
-          </Routes>
+        <main className="flex-1 flex flex-col overflow-hidden md:ml-72">
+          <div className="flex-1 overflow-y-auto flex flex-col">
+            <Routes>
+              <Route
+                path="/"
+                element={
+                  selectedAssistant && selectedThread ? (
+                    <Navigate to={`/assistant/thread/${selectedThread.openai_thread_id}`} replace />
+                  ) : (
+                    <div className="flex-1 flex items-center justify-center bg-gray-50">
+                      <p className="text-gray-500">Select an assistant and thread to start</p>
+                    </div>
+                  )
+                }
+              />
+              <Route
+                path="/assistant/thread/:threadId"
+                element={
+                  <RouteSyncWrapper
+                    selectedAssistant={selectedAssistant}
+                    selectedThread={selectedThread}
+                    setSelectedThread={setSelectedThread}
+                  />
+                }
+              />
+              <Route
+                path="*"
+                element={<Navigate to="/" replace />}
+              />
+            </Routes>
 
-          {selectedAssistant && (
-            <div className="p-4 bg-gray-50">
-              <FileManagement assistantId={selectedAssistant.id} />
-            </div>
-          )}
-        </div>
-      </main>
-    </div>
+            {selectedAssistant && (
+              <div className="p-4 bg-gray-50">
+                <FileManagement assistantId={selectedAssistant.id} />
+              </div>
+            )}
+          </div>
+        </main>
+      </div>
+    </ErrorBoundary>
   );
 }
 
@@ -106,14 +109,16 @@ const RouteSyncWrapper: React.FC<RouteSyncWrapperProps> = ({
 }) => {
   const { threadId } = useParams();
 
-  // Only set thread if it's different from current
-  if (threadId && (!selectedThread || selectedThread.openai_thread_id !== threadId)) {
-    setSelectedThread({
-      id: threadId,
-      openai_thread_id: threadId,
-      messages: [],
-    });
-  }
+  // Move state update to useEffect
+  useEffect(() => {
+    if (threadId && (!selectedThread || selectedThread.openai_thread_id !== threadId)) {
+      setSelectedThread({
+        id: threadId,
+        openai_thread_id: threadId,
+        messages: [],
+      });
+    }
+  }, [threadId, selectedThread, setSelectedThread]);
 
   return (
     <div className="flex-1 overflow-hidden">
