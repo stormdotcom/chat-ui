@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useRef, memo, useLayoutEffect } from 'react';
 import { Message } from '../../types';
 
 interface MessageListProps {
@@ -6,12 +6,14 @@ interface MessageListProps {
   isLoading: boolean;
 }
 
-const MessageList: React.FC<MessageListProps> = ({ messages=[], isLoading }) => {
+const MessageList: React.FC<MessageListProps> = memo(({ messages = [], isLoading }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Scroll to bottom when messages change
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  // Use useLayoutEffect for scroll to prevent flickering
+  useLayoutEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages]);
 
   if (messages.length === 0 && !isLoading) {
@@ -80,6 +82,8 @@ const MessageList: React.FC<MessageListProps> = ({ messages=[], isLoading }) => 
       <div ref={messagesEndRef} />
     </div>
   );
-};
+});
+
+MessageList.displayName = 'MessageList';
 
 export default MessageList;

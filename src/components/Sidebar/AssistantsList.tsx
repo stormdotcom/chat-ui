@@ -1,19 +1,34 @@
-import React from 'react';
+import React, { useState, useEffect, memo } from 'react';
+import { getAssistants } from '../../services/api';
 import { Assistant } from '../../types';
 
 interface AssistantsListProps {
-  assistants: Assistant[];
   selectedAssistant: Assistant | null;
   onSelectAssistant: (assistant: Assistant) => void;
-  isLoading: boolean;
 }
 
-const AssistantsList: React.FC<AssistantsListProps> = ({
-  assistants,
-  selectedAssistant,
-  onSelectAssistant,
-  isLoading,
-}) => {
+const AssistantsList: React.FC<AssistantsListProps> = memo(({ selectedAssistant, onSelectAssistant }) => {
+  const [assistants, setAssistants] = useState<Assistant[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAssistants = async () => {
+      try {
+        const data = await getAssistants();
+        setAssistants(data);
+        if (data.length > 0 && !selectedAssistant) {
+          onSelectAssistant(data[0]);
+        }
+      } catch (error) {
+        console.error('Error fetching assistants:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchAssistants();
+  }, [selectedAssistant, onSelectAssistant]);
+
   if (isLoading) {
     return (
       <div className="p-4">
@@ -45,6 +60,8 @@ const AssistantsList: React.FC<AssistantsListProps> = ({
       ))}
     </div>
   );
-};
+});
+
+AssistantsList.displayName = 'AssistantsList';
 
 export default AssistantsList;

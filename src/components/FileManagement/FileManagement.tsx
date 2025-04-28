@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import FileUpload from './FileUpload';
 import FileList from './FileList';
-import { File, FilesResponse } from '../../types';
+import { File as FileType, FilesResponse } from '../../types';
 import { getFiles, uploadFile, deleteFile } from '../../services/api';
 
 interface FileManagementProps {
@@ -9,67 +9,71 @@ interface FileManagementProps {
 }
 
 const FileManagement: React.FC<FileManagementProps> = ({ assistantId }) => {
-  const [files, setFiles] = useState<File[]>([]);
+  const [files, setFiles] = useState<FileType[]>([]);
   const [vectorStoreIds, setVectorStoreIds] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
-  // Fetch files when assistant changes
-  useEffect(() => {
+  const fetchFiles = useCallback(async () => {
     if (!assistantId) {
       setFiles([]);
       setVectorStoreIds([]);
       return;
     }
 
-    const fetchFiles = async () => {
-      setIsLoading(true);
-      try {
-        const data: FilesResponse = await getFiles(assistantId);
-        setFiles(data.files || []);
-        setVectorStoreIds(data.vector_store_ids || []);
-      } catch (error) {
-        console.error('Error fetching files:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchFiles();
+    setIsLoading(true);
+    try {
+      const data: FilesResponse = await getFiles(assistantId);
+      setFiles(data.files || []);
+      setVectorStoreIds(data.vector_store_ids || []);
+    } catch (error) {
+      console.error('Error fetching files:', error);
+    } finally {
+      setIsLoading(false);
+    }
   }, [assistantId]);
 
-  const handleUploadFile = async (file: File) => {
+  // Fetch files when assistant changes
+  useEffect(() => {
+    fetchFiles();
+  }, [fetchFiles]);
+
+  const handleUploadFile = useCallback(async (file: File) => {
     if (!assistantId) return;
 
     setIsUploading(true);
     try {
       const response = await uploadFile(assistantId, file);
-      setFiles([...files, response.file]);
+      setFiles(prevFiles => [...prevFiles, response.file]);
       if (response.vectorStoreId && !vectorStoreIds.includes(response.vectorStoreId)) {
-        setVectorStoreIds([...vectorStoreIds, response.vectorStoreId]);
+        setVectorStoreIds(prevIds => [...prevIds, response.vectorStoreId]);
       }
     } catch (error) {
       console.error('Error uploading file:', error);
     } finally {
       setIsUploading(false);
     }
-  };
+  }, [assistantId, vectorStoreIds]);
 
-  const handleDeleteFile = async (fileId: string) => {
+  const handleDeleteFile = useCallback(async (fileId: string) => {
     if (!assistantId) return;
 
     setIsDeleting(true);
     try {
       await deleteFile(assistantId, fileId);
-      setFiles(files.filter((file) => file.id !== fileId));
+      setFiles(prevFiles => prevFiles.filter((file) => file.id !== fileId));
     } catch (error) {
       console.error('Error deleting file:', error);
     } finally {
       setIsDeleting(false);
     }
-  };
+  }, [assistantId]);
+
+  const toggleExpanded = useCallback(() => {
+    setExpanded(prev => !prev);
+  }, []);
 
   if (!assistantId) {
     return null;
@@ -81,7 +85,7 @@ const FileManagement: React.FC<FileManagementProps> = ({ assistantId }) => {
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-medium text-gray-900">Files</h3>
           <button
-            onClick={() => setExpanded(!expanded)}
+            onClick={toggleExpanded}
             className="text-gray-500 hover:text-gray-700"
           >
             {expanded ? (

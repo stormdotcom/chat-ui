@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { Route, Routes, Navigate } from 'react-router-dom';
 import Conversation from './components/Conversation/Conversation';
 import FileManagement from './components/FileManagement/FileManagement';
 import Sidebar from './components/Sidebar/Sidebar';
@@ -9,16 +9,36 @@ import { Assistant, Thread } from './types';
 function App() {
   const [selectedAssistant, setSelectedAssistant] = useState<Assistant | null>(null);
   const [selectedThread, setSelectedThread] = useState<Thread | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
+  // Initialize assistant on mount
   useEffect(() => {
     const initializeAssistant = async () => {
-      const assistants = await getAssistants();
-      if (assistants.length > 0) {
-        setSelectedAssistant(assistants[0]);
+      try {
+        const assistants = await getAssistants();
+        if (assistants.length > 0) {
+          setSelectedAssistant(assistants[0]);
+        }
+      } catch (error) {
+        console.error('Error initializing assistant:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
+
     initializeAssistant();
   }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -33,12 +53,22 @@ function App() {
         <div className="flex-1 overflow-y-auto flex flex-col">
           <Routes>
             <Route
-              path="/assistant/:assistantId/thread/:threadId"
+              path="/"
+              element={
+                selectedAssistant && selectedThread ? (
+                  <Navigate to={`/assistant/thread/${selectedThread.openai_thread_id}`} replace />
+                ) : (
+                  <div className="flex-1 flex items-center justify-center bg-gray-50">
+                    <p className="text-gray-500">Select an assistant and thread to start</p>
+                  </div>
+                )
+              }
+            />
+            <Route
+              path="/assistant/thread/:threadId"
               element={
                 <RouteSyncWrapper
-                  assistants={selectedAssistant ? [selectedAssistant] : []}
                   selectedAssistant={selectedAssistant}
-                  setSelectedAssistant={setSelectedAssistant}
                   selectedThread={selectedThread}
                   setSelectedThread={setSelectedThread}
                 />
@@ -46,11 +76,7 @@ function App() {
             />
             <Route
               path="*"
-              element={
-                <div className="flex-1 flex items-center justify-center bg-gray-50">
-                  <p className="text-gray-500">Select an assistant and thread to start</p>
-                </div>
-              }
+              element={<Navigate to="/" replace />}
             />
           </Routes>
 
@@ -68,36 +94,26 @@ function App() {
 import { useParams } from 'react-router-dom';
 
 interface RouteSyncWrapperProps {
-  assistants: Assistant[];
   selectedAssistant: Assistant | null;
-  setSelectedAssistant: (a: Assistant | null) => void;
   selectedThread: Thread | null;
   setSelectedThread: (t: Thread | null) => void;
 }
 
 const RouteSyncWrapper: React.FC<RouteSyncWrapperProps> = ({
   selectedAssistant,
-  setSelectedAssistant,
   selectedThread,
   setSelectedThread,
 }) => {
-  const { assistantId, threadId } = useParams();
+  const { threadId } = useParams();
 
-  // Sync assistant and thread with route params
-  useEffect(() => {
-    if (assistantId && (!selectedAssistant || selectedAssistant.id !== assistantId)) {
-      // In a real app, you might fetch or look up the assistant here
-      setSelectedAssistant({ id: assistantId, name: 'AI Assistant' });
-    }
-    if (threadId && (!selectedThread || selectedThread.openai_thread_id !== threadId)) {
-      // In a real app, you might fetch or look up the thread here
-      setSelectedThread({
-        id: threadId,
-        openai_thread_id: threadId,
-        messages: [],
-      });
-    }
-  }, [ threadId]);
+  // Only set thread if it's different from current
+  if (threadId && (!selectedThread || selectedThread.openai_thread_id !== threadId)) {
+    setSelectedThread({
+      id: threadId,
+      openai_thread_id: threadId,
+      messages: [],
+    });
+  }
 
   return (
     <div className="flex-1 overflow-hidden">
