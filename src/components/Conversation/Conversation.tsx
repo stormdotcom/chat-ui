@@ -27,10 +27,10 @@ const Conversation: React.FC<ConversationProps> = ({
     const fetchMessages = async () => {
       setLoading(true);
       try {
-        if (!selectedThread?.created_at) {
-          throw new Error('Thread creation date is missing');
+        if (!selectedThread?.openai_thread_id) {
+          throw new Error('Thread ID is missing');
         }
-        const data = await getMessages(selectedAssistant.id, selectedThread.created_at);
+        const data = await getMessages(selectedAssistant.id, selectedThread.openai_thread_id);
         setMessages(data);
       } catch (error) {
         console.error('Error fetching messages:', error);
