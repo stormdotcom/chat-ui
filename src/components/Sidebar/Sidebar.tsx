@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { createThread, getAssistants, getThreads } from '../../services/api';
+import { Assistant, Thread } from '../../types';
 import AssistantsList from './AssistantsList';
 import ThreadsList from './ThreadsList';
-import { Assistant, Thread } from '../../types';
-import { getAssistants, getThreads, createThread } from '../../services/api';
 
 interface SidebarProps {
   selectedAssistant: Assistant | null;
@@ -22,6 +23,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [loadingAssistants, setLoadingAssistants] = useState(true);
   const [loadingThreads, setLoadingThreads] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const navigate = useNavigate();
 
   // Fetch assistants on mount
   useEffect(() => {
@@ -40,7 +42,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     };
 
     fetchAssistants();
-  }, []);
+  }, [selectedAssistant, setSelectedAssistant]);
 
   // Fetch threads when selected assistant changes
   useEffect(() => {
@@ -53,6 +55,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         setThreads(data);
         if (data.length > 0 && (!selectedThread || selectedThread.id !== data[0].id)) {
           setSelectedThread(data[0]);
+          navigate(`/assistant/${selectedAssistant.id}/thread/${data[0].id}`);
         }
       } catch (error) {
         console.error('Error fetching threads:', error);
@@ -62,7 +65,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     };
 
     fetchThreads();
-  }, [selectedAssistant]);
+  }, [selectedAssistant, selectedThread, setSelectedThread, navigate]);
 
   const handleCreateThread = async () => {
     if (!selectedAssistant) return;
@@ -71,6 +74,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       const newThread = await createThread(selectedAssistant.id);
       setThreads([newThread, ...threads]);
       setSelectedThread(newThread);
+      navigate(`/assistant/${selectedAssistant.id}/thread/${newThread.id}`);
     } catch (error) {
       console.error('Error creating thread:', error);
     }
@@ -78,6 +82,13 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
+  };
+
+  const handleSelectThread = (thread: Thread) => {
+    setSelectedThread(thread);
+    if (selectedAssistant) {
+      navigate(`/assistant/${selectedAssistant.id}/thread/${thread.id}`);
+    }
   };
 
   return (
@@ -139,7 +150,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               <ThreadsList
                 threads={threads}
                 selectedThread={selectedThread}
-                onSelectThread={setSelectedThread}
+                onSelectThread={handleSelectThread}
                 onCreateThread={handleCreateThread}
                 isLoading={loadingThreads}
               />

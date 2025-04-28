@@ -1,16 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import Sidebar from './components/Sidebar/Sidebar';
+import { useEffect, useState } from 'react';
+import { Route, Routes } from 'react-router-dom';
 import Conversation from './components/Conversation/Conversation';
 import FileManagement from './components/FileManagement/FileManagement';
-import { Assistant, Thread } from './types';
+import Sidebar from './components/Sidebar/Sidebar';
 import { getAssistants } from './services/api';
-import { DEFAULT_ASSISTANT_ID } from './constants';
+import { Assistant, Thread } from './types';
 
 function App() {
   const [selectedAssistant, setSelectedAssistant] = useState<Assistant | null>(null);
   const [selectedThread, setSelectedThread] = useState<Thread | null>(null);
 
-  // Initialize with the default assistant
   useEffect(() => {
     const initializeAssistant = async () => {
       const assistants = await getAssistants();
@@ -23,7 +22,6 @@ function App() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
       <Sidebar
         selectedAssistant={selectedAssistant}
         setSelectedAssistant={setSelectedAssistant}
@@ -31,21 +29,33 @@ function App() {
         setSelectedThread={setSelectedThread}
       />
 
-      {/* Main content */}
       <main className="flex-1 flex flex-col overflow-hidden md:ml-72">
         <div className="flex-1 overflow-y-auto flex flex-col">
-          {/* Conversation area */}
-          <div className="flex-1 overflow-hidden">
-            <Conversation
-              selectedAssistant={selectedAssistant}
-              selectedThread={selectedThread}
+          <Routes>
+            <Route
+              path="/assistant/:assistantId/thread/:threadId"
+              element={
+                <div className="flex-1 overflow-hidden">
+                  <Conversation
+                    selectedAssistant={selectedAssistant}
+                    selectedThread={selectedThread}
+                  />
+                </div>
+              }
             />
-          </div>
+            <Route
+              path="*"
+              element={
+                <div className="flex-1 flex items-center justify-center bg-gray-50">
+                  <p className="text-gray-500">Select an assistant and thread to start</p>
+                </div>
+              }
+            />
+          </Routes>
 
-          {/* File management area */}
           {selectedAssistant && (
             <div className="p-4 bg-gray-50">
-              <FileManagement assistantId={selectedAssistant?.id || null} />
+              <FileManagement assistantId={selectedAssistant.id} />
             </div>
           )}
         </div>
