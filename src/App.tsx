@@ -35,12 +35,13 @@ function App() {
             <Route
               path="/assistant/:assistantId/thread/:threadId"
               element={
-                <div className="flex-1 overflow-hidden">
-                  <Conversation
-                    selectedAssistant={selectedAssistant}
-                    selectedThread={selectedThread}
-                  />
-                </div>
+                <RouteSyncWrapper
+                  assistants={selectedAssistant ? [selectedAssistant] : []}
+                  selectedAssistant={selectedAssistant}
+                  setSelectedAssistant={setSelectedAssistant}
+                  selectedThread={selectedThread}
+                  setSelectedThread={setSelectedThread}
+                />
               }
             />
             <Route
@@ -63,5 +64,49 @@ function App() {
     </div>
   );
 }
+
+import { useParams } from 'react-router-dom';
+
+interface RouteSyncWrapperProps {
+  assistants: Assistant[];
+  selectedAssistant: Assistant | null;
+  setSelectedAssistant: (a: Assistant | null) => void;
+  selectedThread: Thread | null;
+  setSelectedThread: (t: Thread | null) => void;
+}
+
+const RouteSyncWrapper: React.FC<RouteSyncWrapperProps> = ({
+  selectedAssistant,
+  setSelectedAssistant,
+  selectedThread,
+  setSelectedThread,
+}) => {
+  const { assistantId, threadId } = useParams();
+
+  // Sync assistant and thread with route params
+  useEffect(() => {
+    if (assistantId && (!selectedAssistant || selectedAssistant.id !== assistantId)) {
+      // In a real app, you might fetch or look up the assistant here
+      setSelectedAssistant({ id: assistantId, name: 'AI Assistant' });
+    }
+    if (threadId && (!selectedThread || selectedThread.openai_thread_id !== threadId)) {
+      // In a real app, you might fetch or look up the thread here
+      setSelectedThread({
+        id: threadId,
+        openai_thread_id: threadId,
+        messages: [],
+      });
+    }
+  }, [assistantId, threadId, selectedAssistant, selectedThread, setSelectedAssistant, setSelectedThread]);
+
+  return (
+    <div className="flex-1 overflow-hidden">
+      <Conversation
+        selectedAssistant={selectedAssistant}
+        selectedThread={selectedThread}
+      />
+    </div>
+  );
+};
 
 export default App;

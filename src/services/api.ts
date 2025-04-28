@@ -54,6 +54,40 @@ export const runThread = async (assistantId: string, threadId: string, content: 
   return response.data;
 };
 
+/**
+ * New endpoints for /threads/ask and /threads/run integration
+ */
+
+// GET /threads/ask
+export const getAskThreads = async () => {
+  const response = await api.get('/threads/ask');
+  return response.data;
+};
+
+// POST /threads/ask
+export const postAskThread = async (data: any) => {
+  const response = await api.post('/threads/ask', data);
+  return response.data;
+};
+
+// POST /threads/:threadId/run
+export const runThreadById = async (threadId: string, data: any) => {
+  const response = await api.post(`/threads/${threadId}/run`, data);
+  return response.data;
+};
+
+// POST /threads/:threadId/run/sync
+export const runThreadByIdSync = async (threadId: string, data: any) => {
+  const response = await api.post(`/threads/${threadId}/run/sync`, data);
+  return response.data;
+};
+
+// POST /threads/run
+export const runNewThread = async (data: any) => {
+  const response = await api.post('/threads/run', data);
+  return response.data;
+};
+
 // File endpoints
 export const getFiles = async (assistantId: string) => {
   const response = await api.get(`/assistances/${assistantId}/files`);

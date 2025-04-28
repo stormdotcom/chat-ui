@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import MessageList from './MessageList';
+import React, { useEffect, useState } from 'react';
+import { getMessages, runThreadById } from '../../services/api';
+import { Assistant, Message, Thread } from '../../types';
 import MessageInput from './MessageInput';
-import { Assistant, Thread, Message } from '../../types';
-import { getMessages, runThread } from '../../services/api';
+import MessageList from './MessageList';
 
 interface ConversationProps {
   selectedAssistant: Assistant | null;
@@ -27,7 +27,10 @@ const Conversation: React.FC<ConversationProps> = ({
     const fetchMessages = async () => {
       setLoading(true);
       try {
-        const data = await getMessages(selectedAssistant.id, selectedThread.id);
+        if (!selectedThread?.created_at) {
+          throw new Error('Thread creation date is missing');
+        }
+        const data = await getMessages(selectedAssistant.id, selectedThread.created_at);
         setMessages(data);
       } catch (error) {
         console.error('Error fetching messages:', error);
@@ -53,9 +56,12 @@ const Conversation: React.FC<ConversationProps> = ({
     setMessages([...messages, userMessage]);
 
     try {
-      // Send message and get AI response
-      const response = await runThread(selectedAssistant.id, selectedThread.id, content);
-      
+      // Send message and get AI response using new /threads/:threadId/run endpoint
+      const response = await runThreadById(selectedThread.openai_thread_id, {
+        role: 'user',
+        content,
+      });
+
       // Update the messages with the AI response
       setMessages((prevMessages) => [...prevMessages, response]);
     } catch (error) {

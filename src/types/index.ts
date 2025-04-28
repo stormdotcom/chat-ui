@@ -9,6 +9,7 @@ export interface Thread {
   id: string;
   messages: Message[];
   created_at?: string;
+  openai_thread_id: string
 }
 
 export interface Message {
@@ -33,7 +34,7 @@ export interface File {
       chunk_overlap_tokens: number;
     };
   };
-  attributes: Record<string, any>;
+  attributes: Record<string, string | number | boolean>;
 }
 
 export interface FilesResponse {

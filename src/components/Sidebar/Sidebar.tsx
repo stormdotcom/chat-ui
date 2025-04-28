@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createThread, getAssistants, getThreads } from '../../services/api';
-import { Assistant, Thread } from '../../types';
+import { createThread, getAssistants, getFiles, getThreads } from '../../services/api';
+import { Assistant, FilesResponse, Thread } from '../../types';
 import AssistantsList from './AssistantsList';
 import ThreadsList from './ThreadsList';
 
@@ -23,6 +23,8 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [loadingAssistants, setLoadingAssistants] = useState(true);
   const [loadingThreads, setLoadingThreads] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [filesInfo, setFilesInfo] = useState<FilesResponse | null>(null);
+  const [loadingFilesInfo, setLoadingFilesInfo] = useState(false);
   const navigate = useNavigate();
 
   // Fetch assistants on mount
@@ -64,7 +66,21 @@ const Sidebar: React.FC<SidebarProps> = ({
       }
     };
 
+    const fetchFilesInfo = async () => {
+      setLoadingFilesInfo(true);
+      try {
+        const data = await getFiles(selectedAssistant.id);
+        setFilesInfo(data);
+      } catch (error) {
+        setFilesInfo(null);
+        console.error('Error fetching files info:', error);
+      } finally {
+        setLoadingFilesInfo(false);
+      }
+    };
+
     fetchThreads();
+    fetchFilesInfo();
   }, [selectedAssistant, selectedThread, setSelectedThread, navigate]);
 
   const handleCreateThread = async () => {
@@ -86,8 +102,9 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   const handleSelectThread = (thread: Thread) => {
     setSelectedThread(thread);
+    console.log(thread)
     if (selectedAssistant) {
-      navigate(`/assistant/${selectedAssistant.id}/thread/${thread.id}`);
+      navigate(`/assistant/${selectedAssistant.id}/thread/${thread.openai_thread_id}`);
     }
   };
 
@@ -136,6 +153,11 @@ const Sidebar: React.FC<SidebarProps> = ({
             <h2 className="text-lg font-bold text-gray-800">
               {selectedAssistant ? selectedAssistant.name : 'Assistants'}
             </h2>
+            {selectedAssistant && (
+              <div className="text-xs text-gray-500 break-all mt-1">
+                <span className="font-semibold">Assistant ID:</span> {selectedAssistant.id}
+              </div>
+            )}
             <AssistantsList
               assistants={assistants}
               selectedAssistant={selectedAssistant}
@@ -157,7 +179,78 @@ const Sidebar: React.FC<SidebarProps> = ({
             </div>
           )}
         </div>
-        
+
+        {/* Files List Section */}
+        {selectedAssistant && filesInfo && filesInfo.files && filesInfo.files.length > 0 && (
+          <div className="p-4 border-t border-gray-200">
+            <div className="text-xs text-gray-700 mb-1 font-semibold">Files</div>
+            <ul className="space-y-2">
+              {filesInfo.files.map((file) => {
+                const fileName =
+                  file.attributes?.name ||
+                  file.attributes?.filename ||
+                  file.id;
+                return (
+                  <li key={file.id} className="flex items-start justify-between group">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs text-gray-800 font-medium truncate">{fileName}</div>
+                      <div className="text-[10px] text-gray-400 mt-0.5 truncate">
+                        {file.vector_store_id}
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-1 ml-2">
+                      {/* View Icon */}
+                      <button
+                        type="button"
+                        className="p-1 text-gray-400 hover:text-blue-500"
+                        title="View"
+                        tabIndex={-1}
+                        // Placeholder: implement view logic if needed
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      </button>
+                      {/* Delete Icon */}
+                      <button
+                        type="button"
+                        className="p-1 text-gray-400 hover:text-red-500"
+                        title="Delete"
+                        tabIndex={-1}
+                        onClick={async () => {
+                          if (!selectedAssistant) return;
+                          try {
+                            await import('../../services/api').then(api =>
+                              api.deleteFile(selectedAssistant.id, file.id)
+                            );
+                            // Refresh files list
+                            setLoadingFilesInfo(true);
+                            const data = await import('../../services/api').then(api =>
+                              api.getFiles(selectedAssistant.id)
+                            );
+                            setFilesInfo(data);
+                          } catch (error) {
+                            // Optionally show error
+                            // eslint-disable-next-line no-console
+                            console.error('Error deleting file:', error);
+                          } finally {
+                            setLoadingFilesInfo(false);
+                          }
+                        }}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+
         <div className="p-4 border-t border-gray-200">
           <div className="text-sm text-gray-500">
             <p>{selectedAssistant ? selectedAssistant.name : 'Assistance API Demo'}</p>

@@ -59,7 +59,7 @@ const ThreadsList: React.FC<ThreadsListProps> = ({
           <button
             key={thread.id}
             className={`w-full text-left p-3 rounded-md transition-colors ${
-              selectedThread?.id === thread.id
+              selectedThread?.openai_thread_id === thread.openai_thread_id
                 ? 'bg-indigo-50 border border-indigo-200'
                 : 'border border-gray-200 hover:bg-gray-50'
             }`}
