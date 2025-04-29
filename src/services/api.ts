@@ -23,12 +23,12 @@ export const getAssistants = async () => {
 
 // Thread endpoints
 export const getThreads = async () => {
-  const response = await api.get(`/assistances/threads`);
+  const response = await api.get(`/assistances/threads/list`);
   return response.data;
 };
 
 export const createThread = async () => {
-  const response = await api.post(`/assistances/threads`);
+  const response = await api.post(`/assistances/threads/create`);
   return response.data;
 };
 
@@ -38,9 +38,17 @@ export const getMessages = async (threadId: string) => {
   return response.data;
 };
 
-export const sendMessage = async (threadId: string, content: string) => {
+export const sendMessage = async (threadId: string, content: any) => {
+  const response = await api.post(`/assistances/threads/${threadId}/messages`, {
+    role: 'user',
+    content
+  });
+  return response.data;
+};
+
+export const runAssistant = async (threadId: string, content: string) => {
   const response = await api.post(`/assistances/threads/${threadId}/runs`, {
-    content,
+    assistant_id: content,
   });
   return response.data;
 };

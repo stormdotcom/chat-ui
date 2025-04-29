@@ -1,3 +1,5 @@
+import { ReactNode } from "react";
+
 // API response types
 export interface Assistant {
   id: string;
@@ -6,18 +8,31 @@ export interface Assistant {
 }
 
 export interface Thread {
-  [x: string]: ReactNode;
   id: string;
   messages: Message[];
   created_at?: string;
-  openai_thread_id: string
+  openai_thread_id: string;
 }
+
 
 export interface Message {
   id: string;
+  object: string;
+  created_at: number;
+  assistant_id: string | null;
+  thread_id: string;
+  run_id: string | null;
   role: 'user' | 'assistant';
-  content: string;
-  created_at?: string;
+  content: Array<{
+    type: string;
+    text: {
+      value: string;
+      annotations: any[];
+    };
+  }>;
+  attachments: any[];
+  metadata: Record<string, any>;
+  file_ids: string[];
 }
 
 export interface File {

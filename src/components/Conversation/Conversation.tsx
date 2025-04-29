@@ -1,109 +1,161 @@
-import React, { useState, useEffect, memo } from 'react';
+import React, { useState, useEffect, memo, useCallback } from 'react';
 import { Assistant, Message, Thread } from '../../types';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
 import ErrorBoundary from '../ErrorBoundary';
-import { getMessages } from '../../services/api';
+import {
+  getMessages,
+  sendMessage,
+  runAssistant,
+  getRunStatus,
+} from '../../services/api';
+import { DEFAULT_ASSISTANT_ID } from '../../constants';
 
 interface ConversationProps {
   selectedAssistant: Assistant | null;
   selectedThread: Thread | null;
 }
 
-const Conversation: React.FC<ConversationProps> = memo(({ selectedAssistant, selectedThread }) => {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+const Conversation: React.FC<ConversationProps> = memo(
+  ({ selectedAssistant, selectedThread }) => {
+    const [messages, setMessages] = useState<Message[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSending, setIsSending] = useState(false);
+    const [statusMessage, setStatusMessage] = useState("");
+    const [error, setError] = useState<Error | null>(null);
 
-  // Fetch messages when thread changes
-  useEffect(() => {
-    const fetchMessages = async () => {
-      if (!selectedThread) {
-        setMessages([]);
-        setIsLoading(false);
-        return;
-      }
+    // Load messages on thread change
+    useEffect(() => {
+      if (!selectedThread) return setIsLoading(false);
 
-      setIsLoading(true);
-      setError(null);
-      try {
-        const data = await getMessages(selectedThread.id);
-        if (!Array.isArray(data)) {
-          throw new Error('Invalid messages format received from server');
+      (async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+          const response = await getMessages(selectedThread.openai_thread_id);
+          setMessages(response.data || []);
+        } catch (err) {
+          console.error(err);
+          setError(new Error('Failed to load messages'));
+        } finally {
+          setIsLoading(false);
         }
-        setMessages(data);
-      } catch (error) {
-        console.error('Error fetching messages:', error);
-        setError(error instanceof Error ? error : new Error('Failed to fetch messages'));
-      } finally {
-        setIsLoading(false);
-      }
-    };
+      })();
+    }, [selectedThread]);
 
-    fetchMessages();
-  }, [selectedThread]);
+    const handleSend = useCallback(
+      async (content: string) => {
+        if (!selectedThread || isSending) return;
+        setIsSending(true);
 
-  const handleMessageSent = (newMessages: Message[]) => {
-    if (!Array.isArray(newMessages)) {
-      console.error('Invalid messages format:', newMessages);
-      return;
-    }
-    setMessages(newMessages);
-  };
+        // 1) optimistically render user message
+        const tempMsg: any = {
+          id: `temp-${Date.now()}`,
+          role: 'user',
+          content,
+          created_at: new Date().toISOString(),
+        };
+        setMessages((prev) => [...(prev || []), tempMsg]);
 
-  if (!selectedAssistant || !selectedThread) {
-    return (
-      <div className="flex-1 flex items-center justify-center bg-gray-50">
-        <p className="text-gray-500">Select an assistant and thread to start</p>
-      </div>
+        try {
+          // 2) send user message to backend
+          setStatusMessage("Sending message...")
+          await sendMessage(selectedThread.openai_thread_id, content);
+
+          // 3) start assistant run
+          setStatusMessage("Running assistant...")
+          const run = await runAssistant(
+            selectedThread.openai_thread_id,
+            selectedAssistant?.id ?? DEFAULT_ASSISTANT_ID
+          );
+          setStatusMessage("Assistant Initializing...")
+
+          // 4) poll until complete
+          setStatusMessage("Assistant Status: Running...")
+          let status = run;
+          let statusCount = 0
+          do {
+            setStatusMessage("Assistant Status: Running..." + statusCount)
+            await new Promise((r) => setTimeout(r, 700));
+            status = await getRunStatus(
+              selectedThread.openai_thread_id,
+              run.id
+            );
+            statusCount++
+          } while (status.status !== 'completed' && status.status !== 'failed');
+
+          if (status.status === 'failed') {
+           // TODO: handle error in status
+            setStatusMessage("Assistant Status: Failed...")
+          }
+
+          // 5) fetch updated messages
+          setStatusMessage("Fetching messages...")
+          const response = await getMessages(selectedThread.openai_thread_id);
+          setMessages(response.data || []);
+          setStatusMessage("Messages fetched...")
+        } catch (err: any) {
+          setStatusMessage("Error...")
+          console.error(err);
+          setError(err instanceof Error ? err : new Error('Chat error'));
+        } finally {
+          setStatusMessage("")
+          setIsSending(false);
+        }
+      },
+      [selectedThread, selectedAssistant, isSending]
     );
-  }
 
-  if (error) {
-    return (
-      <div className="flex-1 flex items-center justify-center bg-gray-50">
-        <div className="text-center p-8">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-12 w-12 mx-auto text-red-500 mb-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-            />
-          </svg>
-          <p className="text-red-500 mb-2">{error.message}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-          >
-            Retry
-          </button>
+    if (!selectedAssistant || !selectedThread) {
+      return (
+        <div className="flex-1 flex items-center justify-center bg-gray-50">
+          <p className="text-gray-500">
+            Select an assistant and thread to start
+          </p>
         </div>
-      </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="flex-1 flex items-center justify-center bg-gray-50">
+          <div className="text-center p-8">
+            <p className="text-red-500 mb-2">{error.message}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <ErrorBoundary>
+        <div className="flex-1 flex flex-col h-full">
+          <MessageList messages={messages} isLoading={isLoading} />
+
+          {isSending && (
+            <div className="flex justify-center items-center py-2">
+              <div className="loader" />
+              <span className="ml-2 text-gray-500">
+                {statusMessage}
+              </span>
+            </div>
+          )}
+
+          <MessageInput
+            onSend={handleSend}
+            disabled={isLoading || isSending}
+            statusMessage={statusMessage}
+          />
+        </div>
+      </ErrorBoundary>
     );
   }
-
-  return (
-    <ErrorBoundary>
-      <div className="flex-1 flex flex-col h-full">
-        <MessageList messages={messages} isLoading={isLoading} />
-        <MessageInput
-          threadId={selectedThread.id}
-          assistantId={selectedAssistant.id}
-          onMessageSent={handleMessageSent}
-          isDisabled={isLoading}
-        />
-      </div>
-    </ErrorBoundary>
-  );
-});
+);
 
 Conversation.displayName = 'Conversation';
-
 export default Conversation;
