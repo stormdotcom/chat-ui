@@ -45,11 +45,7 @@ const FileManagement: React.FC<FileManagementProps> = ({ assistantId }) => {
 
     setIsUploading(true);
     try {
-      const response = await uploadFile( file);
-      setFiles(prevFiles => [...prevFiles, response.file]);
-      if (response.vectorStoreId && !vectorStoreIds.includes(response.vectorStoreId)) {
-        setVectorStoreIds(prevIds => [...prevIds, response.vectorStoreId]);
-      }
+      await uploadFile( file);
     } catch (error) {
       console.error('Error uploading file:', error);
     } finally {

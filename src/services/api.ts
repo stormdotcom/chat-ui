@@ -32,6 +32,11 @@ export const createThread = async () => {
   return response.data;
 };
 
+export const deleteThread = async (threadId: string) => {
+  const response = await api.delete(`/assistances/threads/${threadId}`);
+  return response.data;
+};
+
 // Message endpoints
 export const getMessages = async (threadId: string) => {
   const response = await api.get(`/assistances/threads/${threadId}/messages`);
@@ -68,7 +73,7 @@ export const uploadFile = async (  file: File) => {
   const formData = new FormData();
   formData.append('file', file);
 
-  const response = await api.post(`/assistances/files`, formData, {
+  const response = await api.post(`/assistances/files/upload`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
