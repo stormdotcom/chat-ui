@@ -25,7 +25,7 @@ const FileManagement: React.FC<FileManagementProps> = ({ assistantId }) => {
 
     setIsLoading(true);
     try {
-      const data: FilesResponse = await getFiles(assistantId);
+      const data: FilesResponse = await getFiles();
       setFiles(data.files || []);
       setVectorStoreIds(data.vector_store_ids || []);
     } catch (error) {
@@ -45,7 +45,7 @@ const FileManagement: React.FC<FileManagementProps> = ({ assistantId }) => {
 
     setIsUploading(true);
     try {
-      const response = await uploadFile(assistantId, file);
+      const response = await uploadFile( file);
       setFiles(prevFiles => [...prevFiles, response.file]);
       if (response.vectorStoreId && !vectorStoreIds.includes(response.vectorStoreId)) {
         setVectorStoreIds(prevIds => [...prevIds, response.vectorStoreId]);
@@ -62,7 +62,7 @@ const FileManagement: React.FC<FileManagementProps> = ({ assistantId }) => {
 
     setIsDeleting(true);
     try {
-      await deleteFile(assistantId, fileId);
+      await deleteFile(fileId);
       setFiles(prevFiles => prevFiles.filter((file) => file.id !== fileId));
     } catch (error) {
       console.error('Error deleting file:', error);

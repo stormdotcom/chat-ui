@@ -59,16 +59,16 @@ export const getRunStatus = async (threadId: string, runId: string) => {
 };
 
 // File endpoints
-export const getFiles = async (assistantId: string) => {
-  const response = await api.get(`/assistances/${assistantId}/files`);
+export const getFiles = async () => {
+  const response = await api.get(`/assistances/files`);
   return response.data;
 };
 
-export const uploadFile = async (assistantId: string, file: File) => {
+export const uploadFile = async (  file: File) => {
   const formData = new FormData();
   formData.append('file', file);
 
-  const response = await api.post(`/assistances/${assistantId}/files`, formData, {
+  const response = await api.post(`/assistances/files`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
@@ -76,7 +76,7 @@ export const uploadFile = async (assistantId: string, file: File) => {
   return response.data;
 };
 
-export const deleteFile = async (assistantId: string, fileId: string) => {
-  const response = await api.delete(`/assistances/${assistantId}/files/${fileId}`);
+export const deleteFile = async ( fileId: string) => {
+  const response = await api.delete(`/assistances/files/${fileId}`);
   return response.data;
 };
